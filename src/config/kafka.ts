@@ -1,11 +1,32 @@
-import { Consumer, EachMessagePayload, Kafka } from "kafkajs";
+import { Consumer, EachMessagePayload, Kafka, KafkaConfig } from "kafkajs";
 import { MessageBroker } from "../types/broker";
+import config from "config";
+import { createNotificationTransport } from "../factories/notification-factory";
+import { handleOrderHtml, handleOrderText } from "../handlers/orderHander";
 
 export class KafkaBroker implements MessageBroker {
   private consumer: Consumer;
 
   constructor(clientId: string, brokers: string[]) {
-    const kafka = new Kafka({ clientId, brokers });
+   let kafkaConfig: KafkaConfig = {
+      clientId,
+      brokers,
+    };
+
+    if (process.env.NODE_ENV === "production") {
+      kafkaConfig = {
+        ...kafkaConfig,
+        ssl: true,
+        connectionTimeout: 45000,
+        sasl: {
+          mechanism: "plain",
+          username: config.get("kafka.sasl.username"),
+          password: config.get("kafka.sasl.password"),
+        },
+      };
+    }
+
+    const kafka = new Kafka(kafkaConfig);
 
     this.consumer = kafka.consumer({ groupId: clientId });
   }
@@ -33,12 +54,24 @@ export class KafkaBroker implements MessageBroker {
         partition,
         message,
       }: EachMessagePayload) => {
-        // Logic to handle incoming messages.
         console.log({
           value: message.value.toString(),
           topic,
           partition,
         });
+
+        if (topic === "order") {
+          const transport = createNotificationTransport("mail");
+
+          const order = JSON.parse(message.value.toString());
+
+          await transport.send({
+            to: order.data.customerId.email || config.get("mail.from"),
+            subject: "Order update.",
+            text: handleOrderText(order),
+            html: handleOrderHtml(order),
+          });
+        }
       },
     });
   }
