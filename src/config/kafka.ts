@@ -1,6 +1,6 @@
 import { Consumer, EachMessagePayload, Kafka, KafkaConfig } from "kafkajs";
 import { MessageBroker } from "../types/broker";
-import config from "config";
+import { Config } from "./index";
 import { createNotificationTransport } from "../factories/notification-factory";
 import { handleOrderHtml, handleOrderText } from "../handlers/orderHander";
 
@@ -13,15 +13,15 @@ export class KafkaBroker implements MessageBroker {
       brokers,
     };
 
-    if (process.env.NODE_ENV === "production") {
+    if (Config.env.nodeEnv === "production") {
       kafkaConfig = {
         ...kafkaConfig,
         ssl: true,
         connectionTimeout: 45000,
         sasl: {
           mechanism: "plain",
-          username: config.get("kafka.sasl.username"),
-          password: config.get("kafka.sasl.password"),
+          username: Config.kafka.sasl.username,
+          password: Config.kafka.sasl.password,
         },
       };
     }
@@ -66,7 +66,7 @@ export class KafkaBroker implements MessageBroker {
           const order = JSON.parse(message.value.toString());
 
           await transport.send({
-            to: order.data.customerId.email || config.get("mail.from"),
+            to: order.data.customerId.email || Config.mail.from,
             subject: "Order update.",
             text: handleOrderText(order),
             html: handleOrderHtml(order),
