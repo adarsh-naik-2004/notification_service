@@ -49,28 +49,27 @@ export class KafkaBroker implements MessageBroker {
     await this.consumer.subscribe({ topics, fromBeginning });
 
     await this.consumer.run({
-      eachMessage: async ({
-        topic,
-        partition,
-        message,
-      }: EachMessagePayload) => {
-        console.log({
-          value: message.value.toString(),
-          topic,
-          partition,
-        });
+      eachMessage: async ({ message }: EachMessagePayload) => {
+        const event = JSON.parse(message.value.toString());
+        console.log(`Received ${event.event_type} event`);
 
-        if (topic === "order") {
-          const transport = createNotificationTransport("mail");
-
-          const order = JSON.parse(message.value.toString());
-
-          await transport.send({
-            to: order.data.customerId.email,
-            subject: "Order update.",
-            text: handleOrderText(order),
-            html: handleOrderHtml(order),
-          });
+        if (event.event_type === "order") {
+          try {
+            const transport = createNotificationTransport("mail");
+            
+            const customerEmail = event.data.customerEmail || Config.mail.from;
+            
+            console.log(`Sending notification to: ${customerEmail}`);
+            
+            await transport.send({
+              to: customerEmail,
+              subject: "Order update.",
+              text: handleOrderText(event),
+              html: handleOrderHtml(event),
+            });
+          } catch (err) {
+            console.error("❌ Error processing order event:", err);
+          }
         }
       },
     });
