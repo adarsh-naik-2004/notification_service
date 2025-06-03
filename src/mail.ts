@@ -11,7 +11,7 @@ export class MailTransport implements NotificationTransport {
     this.transporter = nodemailer.createTransport({
       host: Config.mail.host,
       port: parseInt(Config.mail.port),
-      secure: false, 
+      secure: true, 
       auth: {
         user: Config.mail.auth.user,
         pass: Config.mail.auth.password,

@@ -43,11 +43,3 @@ EXPOSE 5501
 
 
 CMD ["node", "server.js"]
-
-
-
-
-
-
-
-

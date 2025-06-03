@@ -65,8 +65,10 @@ export class KafkaBroker implements MessageBroker {
 
           const order = JSON.parse(message.value.toString());
 
+          const customerEmail = order.data.customerEmail || Config.mail.from;
+
           await transport.send({
-            to: order.data.customerId.email || Config.mail.from,
+            to: customerEmail,
             subject: "Order update.",
             text: handleOrderText(order),
             html: handleOrderHtml(order),
