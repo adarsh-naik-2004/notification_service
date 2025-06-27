@@ -5,24 +5,24 @@ import { handleOrderHtml, handleOrderText } from '../handlers/orderHander';
 export class NotificationController {
   async notify(req: Request, res: Response, next: NextFunction) {
     try {
-      const event = req.body;
+      const { eventType, data } = req.body;
       
-      if (event.topic === "order") {
+      if (eventType.startsWith("ORDER_")) {
         const transport = createNotificationTransport("mail");
-        const customerEmail = event.data.customerEmail;
+        const customerEmail = data.customerEmail;
 
         await transport.send({
           to: customerEmail,
           subject: "Order update.",
-          text: handleOrderText(event),  
-          html: handleOrderHtml(event), 
+          text: handleOrderText({ event_type: eventType, data }),  
+          html: handleOrderHtml({ event_type: eventType, data }), 
         });
 
         console.log(`Email sent to ${customerEmail}`);
-        res.status(200).json({ message: "Notification sent" });
-      } else {
-        res.status(400).json({ error: "Unsupported event topic" });
+        return res.status(200).json({ message: "Notification sent" });
       }
+
+      res.status(400).json({ error: "Unsupported event type" });
     } catch (err) {
       next(err);
     }
