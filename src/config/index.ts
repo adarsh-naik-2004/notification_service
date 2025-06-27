@@ -29,5 +29,5 @@ export const Config = {
     },
     port:{
         server: process.env.PORT
-    }
+    },
 }

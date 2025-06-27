@@ -1,35 +1,18 @@
 import express from "express";
-import logger from "./src/config/logger";
-import { createMessageBroker } from "./src/factories/broker-factory";
-import { MessageBroker } from "./src/types/broker";
 import { Config } from "./src/config/index";
+import notificationRouter from './src/routes/notificationRoutes';
 
 const app = express();
-const PORT = parseInt(Config.port.server, 10)
+const PORT = parseInt(Config.port.server, 10);
 
-let broker: MessageBroker | null = null;
+app.use(express.json());
 
-const startServer = async () => {
-  try {
-    broker = createMessageBroker();
-    await broker.connectConsumer();
-    await broker.consumeMessage(["order"], false);
+app.use('/', notificationRouter);
 
-    app.get("/", (req, res) => {
-      res.send("Notification service is running ✅");
-    });
+app.get("/", (req, res) => {
+  res.send("Notification service is running ✅");
+});
 
-    app.listen(PORT, () => {
-      console.log(`Notification service listening on port ${PORT}`);
-    });
-
-  } catch (err) {
-    logger.error("Error occurred:", err.message);
-    if (broker) {
-      await broker.disconnectConsumer();
-    }
-    process.exit(1);
-  }
-};
-
-void startServer();
+app.listen(PORT, () => {
+  console.log(`Notification service listening on port ${PORT}`);
+});
